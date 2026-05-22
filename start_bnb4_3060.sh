@@ -70,11 +70,15 @@ export CUDA_DEVICE_ORDER=PCI_BUS_ID
 export CUDA_VISIBLE_DEVICES="${GPU_INDEX}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
+export TORCHINDUCTOR_CACHE_DIR="${REPO_DIR}/pt_cache"
+export TRITON_CACHE_DIR="${REPO_DIR}/triton_cache"
+# ----------------------------------------
+
 cd "${REPO_DIR}"
 
 echo "Launching Fish Speech S2-Pro on GPU ${GPU_INDEX}"
 echo "Endpoint: http://${HOST}:${PORT}/v1"
-echo "Mode: bitsandbytes NF4 4-bit, lazy load, idle shutdown after ${IDLE_TIMEOUT_SECONDS}s"
+echo "Mode: bitsandbytes NF4 4-bit, lazy load, COMPILED, idle shutdown after ${IDLE_TIMEOUT_SECONDS}s"
 
 exec "${PYTHON_BIN}" tools/api_server.py \
     --llama-checkpoint-path "${CHECKPOINT_DIR}" \
@@ -86,4 +90,5 @@ exec "${PYTHON_BIN}" tools/api_server.py \
     --lazy-load \
     --idle-timeout-seconds "${IDLE_TIMEOUT_SECONDS}" \
     --max-seq-len "${MAX_SEQ_LEN}" \
-    --listen "${HOST}:${PORT}"
+    --listen "${HOST}:${PORT}" \
+    --compile
