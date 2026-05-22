@@ -605,7 +605,11 @@ class BaseTransformer(nn.Module):
 
         logger.info(f"Loading model from {path}, config: {config}")
         # Initialize model without passing tokenizer explicitly to __init__
-        model = model_cls(config)
+        import torch
+        with torch.device("cuda"):
+            torch.set_default_dtype(torch.float16) 
+            model = model_cls(config)
+            torch.set_default_dtype(torch.float32)
         model._bnb4_prequantized = False
         # Attach tokenizer to model instance for inference convenience (optional, but good for user scripts)
         model.tokenizer = tokenizer
@@ -713,8 +717,10 @@ class BaseTransformer(nn.Module):
 
             load_kwargs = {"strict": False}
             if not bnb4:
-                load_kwargs["assign"] = True
+                load_kwargs["assign"] = False
+            
             err = model.load_state_dict(weights, **load_kwargs)
+            
             if prequantized_bnb4_keys:
                 filtered_missing = [
                     key for key in err.missing_keys if key not in prequantized_bnb4_keys
@@ -724,6 +730,12 @@ class BaseTransformer(nn.Module):
                     err.unexpected_keys,
                 )
             logger.info(f"Model weights loaded - Status: {err}")
+
+            import gc
+            del weights
+            gc.collect()
+            torch.cuda.empty_cache() 
+            # ==========================================
 
         if lora_config is not None:
             setup_lora(model, lora_config)
